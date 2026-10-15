@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Inventory · Equipment Borrowing</title>
+<style>body{font-family:system-ui,sans-serif;max-width:900px;margin:2rem auto;padding:0 1rem}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:.4rem;text-align:left}
+input,select{padding:.35rem}td form{display:inline}.add{display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0}</style><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+<p><a href="/dashboard">&larr; Dashboard</a> · signed in as <%= user.username %> (<%= user.role %>)</p>
+<h1>Inventory management</h1>
+<form class="add" method="post" action="/inventory">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <input name="name" placeholder="Name" required maxlength="100">
+  <input name="description" placeholder="Description" maxlength="500">
+  <select name="status"><% statuses.forEach(s => { %><option><%= s %></option><% }) %></select>
+  <button>Add</button>
+</form>
+<table><thead><tr><th>Name</th><th>Description</th><th>Status</th><th></th></tr></thead><tbody>
+<% items.forEach(i => { %>
+<tr>
+  <td><input form="u<%= i.id %>" name="name" value="<%= i.name %>" required maxlength="100"></td>
+  <td><input form="u<%= i.id %>" name="description" value="<%= i.description %>" maxlength="500"></td>
+  <td><select form="u<%= i.id %>" name="status"><% statuses.forEach(s => { %><option <%= s === i.status ? 'selected' : '' %>><%= s %></option><% }) %></select></td>
+  <td>
+    <form id="u<%= i.id %>" method="post" action="/inventory/<%= i.id %>/update">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button>Save</button>
+    </form>
+    <% if (canDelete) { %><form method="post" action="/inventory/<%= i.id %>/delete" onsubmit="return confirm('Delete this item?')">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button>Delete</button>
+    </form><% } %>
+  </td>
+</tr>
+<% }) %>
+</tbody></table>
+</body></html>

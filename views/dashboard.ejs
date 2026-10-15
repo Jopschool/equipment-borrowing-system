@@ -1,98 +1,20 @@
-<% const items = locals.equipment || []; %>
-
-<div class="page-head">
-  <div>
-    <h1 class="h3 mb-1">Equipment</h1>
-    <p class="text-secondary mb-0">Choose an item and the date you will return it.</p>
-  </div>
-  <div class="page-tools">
-    <label for="itemSearch" class="visually-hidden">Search equipment</label>
-    <input type="search" id="itemSearch" class="form-control" placeholder="Search equipment">
-  </div>
-</div>
-
-<div class="panel">
-  <% if (items.length === 0) { %>
-    <div class="empty">
-      <p class="fw-semibold mb-1">No equipment listed yet</p>
-      <p class="text-secondary mb-0">Items appear here once the equipment office adds them.</p>
-    </div>
-  <% } else { %>
-    <div class="table-responsive">
-      <table class="table align-middle mb-0" id="itemTable">
-        <thead>
-          <tr>
-            <th scope="col">Item</th>
-            <th scope="col" class="text-end">Available</th>
-            <th scope="col">Status</th>
-            <th scope="col"><span class="visually-hidden">Action</span></th>
-          </tr>
-        </thead>
-        <tbody>
-          <% items.forEach(function (item) { %>
-            <% const inStock = Number(item.available) > 0; %>
-            <tr>
-              <td>
-                <div class="item-name"><%= item.name %></div>
-                <div class="item-cat"><%= item.category || 'Uncategorized' %></div>
-              </td>
-              <td class="text-end"><%= item.available %></td>
-              <td>
-                <% if (inStock) { %><span class="status status-ok">Available</span>
-                <% } else { %><span class="status status-out">Unavailable</span><% } %>
-              </td>
-              <td class="text-end">
-                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#borrowModal"
-                        data-id="<%= item.id %>" data-name="<%= item.name %>" <%= inStock ? '' : 'disabled' %>>Request to borrow</button>
-              </td>
-            </tr>
-          <% }); %>
-        </tbody>
-      </table>
-    </div>
-    <p id="noMatch" class="empty text-secondary mb-0" hidden>No equipment matches your search.</p>
-  <% } %>
-</div>
-
-<div class="modal fade" id="borrowModal" tabindex="-1" aria-labelledby="borrowModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <form class="modal-content" id="borrowForm" method="POST" action="#">
-      <div class="modal-header">
-        <h2 class="modal-title fs-5" id="borrowModalLabel">Request to borrow</h2>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p class="mb-3">Item: <strong id="borrowItemName"></strong></p>
-        <label for="returnDate" class="form-label">Return date</label>
-        <input type="date" class="form-control" id="returnDate" name="return_date" required>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="submit" class="btn btn-primary">Send request</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<script>
-  (function () {
-    var form = document.getElementById('borrowForm');
-    document.getElementById('returnDate').min = new Date().toISOString().split('T')[0];
-    document.getElementById('borrowModal').addEventListener('show.bs.modal', function (e) {
-      form.action = '/equipment/' + e.relatedTarget.dataset.id + '/request';
-      document.getElementById('borrowItemName').textContent = e.relatedTarget.dataset.name;
-    });
-
-    var search = document.getElementById('itemSearch'), table = document.getElementById('itemTable');
-    if (!table) return;
-    var rows = table.querySelectorAll('tbody tr'), noMatch = document.getElementById('noMatch');
-    search.addEventListener('input', function () {
-      var q = search.value.trim().toLowerCase(), shown = 0;
-      rows.forEach(function (r) {
-        var hit = r.textContent.toLowerCase().indexOf(q) !== -1;
-        r.hidden = !hit; if (hit) shown++;
-      });
-      noMatch.hidden = shown !== 0;
-    });
-  })();
-</script>
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dashboard · Equipment Borrowing</title>
+<style>body{font-family:system-ui,sans-serif;max-width:760px;margin:2rem auto;padding:0 1rem}
+table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:.45rem;text-align:left}
+nav{display:flex;gap:1rem;align-items:center;margin-bottom:1rem}nav form{margin-left:auto}</style><link rel="stylesheet" href="/css/style.css"></head>
+<body>
+<nav>
+  <strong>Equipment Borrowing</strong>
+  <% if (user.role === 'admin' || user.role === 'custodian') { %><a href="/inventory">Manage inventory</a><% } %>
+  <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%= user.username %> (<%= user.role %>) <button>Log out</button></form>
+</nav>
+<h1>Dashboard</h1>
+<h2>Equipment</h2>
+<% if (!items.length) { %><p>No equipment has been added yet.</p><% } else { %>
+<table><thead><tr><th>Name</th><th>Description</th><th>Status</th></tr></thead><tbody>
+<% items.forEach(i => { %><tr><td><%= i.name %></td><td><%= i.description %></td><td><%= i.status %></td></tr><% }) %>
+</tbody></table><% } %>
+</body></html>
