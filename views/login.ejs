@@ -1,0 +1,68 @@
+<% const registering = locals.mode === 'register'; %>
+
+<div class="auth">
+
+  <!-- Sign in -->
+  <section id="loginPane" <%= registering ? 'hidden' : '' %>>
+    <h1 class="h3 mb-1">Sign in</h1>
+    <p class="text-secondary mb-4">Use your account to request equipment.</p>
+
+    <form class="auth-card" action="/login" method="POST">
+      <div class="mb-3">
+        <label for="login-email" class="form-label">Email</label>
+        <input type="email" class="form-control" id="login-email" name="email" autocomplete="username" required>
+      </div>
+      <div class="mb-4">
+        <label for="login-password" class="form-label">Password</label>
+        <input type="password" class="form-control" id="login-password" name="password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary w-100">Sign in</button>
+    </form>
+
+    <p class="auth-switch">No account yet? <button type="button" class="link-btn" data-switch="register">Create one</button></p>
+  </section>
+
+  <!-- Register -->
+  <section id="registerPane" <%= registering ? '' : 'hidden' %>>
+    <h1 class="h3 mb-1">Create account</h1>
+    <p class="text-secondary mb-4">Register to start borrowing equipment.</p>
+
+    <form class="auth-card" action="/register" method="POST">
+      <div class="mb-3">
+        <label for="reg-name" class="form-label">Full name</label>
+        <input type="text" class="form-control" id="reg-name" name="name" autocomplete="name" required>
+      </div>
+      <div class="mb-3">
+        <label for="reg-email" class="form-label">Email</label>
+        <input type="email" class="form-control" id="reg-email" name="email" autocomplete="email" required>
+      </div>
+      <div class="mb-3">
+        <label for="reg-password" class="form-label">Password</label>
+        <input type="password" class="form-control" id="reg-password" name="password" minlength="8"
+               autocomplete="new-password" aria-describedby="reg-help" required>
+        <div id="reg-help" class="form-text">At least 8 characters.</div>
+      </div>
+      <div class="mb-4">
+        <label for="reg-confirm" class="form-label">Confirm password</label>
+        <input type="password" class="form-control" id="reg-confirm" name="confirm_password" minlength="8"
+               autocomplete="new-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary w-100">Create account</button>
+    </form>
+
+    <p class="auth-switch">Already registered? <button type="button" class="link-btn" data-switch="login">Sign in</button></p>
+  </section>
+
+</div>
+
+<script>
+  (function () {
+    var panes = { login: document.getElementById('loginPane'), register: document.getElementById('registerPane') };
+    document.querySelectorAll('[data-switch]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        Object.keys(panes).forEach(function (k) { panes[k].hidden = k !== btn.dataset.switch; });
+        window.scrollTo(0, 0);
+      });
+    });
+  })();
+</script>
