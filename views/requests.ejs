@@ -1,0 +1,88 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow mb-2">BORROWING WORKFLOW</p>
+    <h1 class="page-title mb-2">Borrowing requests</h1>
+    <p class="page-description mb-0">Review requests and manage equipment currently on loan.</p>
+  </div>
+  <a class="btn btn-outline-secondary" href="/dashboard"><i class="fa-solid fa-arrow-left me-2"></i>Dashboard</a>
+</div>
+
+<section class="card equipment-card mb-4" aria-labelledby="pending-requests-title">
+  <div class="card-header equipment-card-header">
+    <div>
+      <h2 class="section-title mb-1" id="pending-requests-title">Pending requests</h2>
+      <p class="section-description mb-0">Approve a request to check out the equipment, or reject it.</p>
+    </div>
+    <span class="item-count"><%= pendingRequests.length %> pending</span>
+  </div>
+  <% if (!pendingRequests.length) { %>
+    <div class="empty-state"><p class="mb-0">There are no pending borrowing requests.</p></div>
+  <% } else { %>
+    <div class="table-responsive">
+      <table class="table equipment-table align-middle mb-0">
+        <thead><tr><th class="ps-4">Equipment</th><th>Borrower</th><th>Requested</th><th>Due date</th><th class="pe-4 text-end">Actions</th></tr></thead>
+        <tbody>
+          <% pendingRequests.forEach(request => { %>
+            <tr>
+              <td class="ps-4"><span class="equipment-name"><%= request.equipment_name %></span></td>
+              <td><%= request.username %></td>
+              <td><%= request.requested_at %></td>
+              <td><%= request.due_date %></td>
+              <td class="pe-4">
+                <div class="action-group">
+                  <form method="post" action="/requests/<%= request.id %>/approve">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button class="btn btn-primary btn-sm" type="submit"><i class="fa-solid fa-check me-1"></i>Approve</button>
+                  </form>
+                  <form method="post" action="/requests/<%= request.id %>/reject">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button class="btn btn-outline-danger btn-sm" type="submit"><i class="fa-solid fa-xmark me-1"></i>Reject</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<section class="card equipment-card" aria-labelledby="active-loans-title">
+  <div class="card-header equipment-card-header">
+    <div>
+      <h2 class="section-title mb-1" id="active-loans-title">Active loans</h2>
+      <p class="section-description mb-0">Mark equipment as returned when it has been checked back in.</p>
+    </div>
+    <span class="item-count"><%= approvedRequests.length %> active</span>
+  </div>
+  <% if (!approvedRequests.length) { %>
+    <div class="empty-state"><p class="mb-0">There are no active loans.</p></div>
+  <% } else { %>
+    <div class="table-responsive">
+      <table class="table equipment-table align-middle mb-0">
+        <thead><tr><th class="ps-4">Equipment</th><th>Borrower</th><th>Due date</th><th class="pe-4 text-end">Action</th></tr></thead>
+        <tbody>
+          <% approvedRequests.forEach(request => { %>
+            <tr>
+              <td class="ps-4"><span class="equipment-name"><%= request.equipment_name %></span></td>
+              <td><%= request.username %></td>
+              <td>
+                <%= request.due_date %>
+                <% if (request.is_overdue) { %>
+                  <span class="status-badge status-overdue ms-1"><span class="status-dot"></span>Overdue</span>
+                <% } %>
+              </td>
+              <td class="pe-4 text-end">
+                <form method="post" action="/requests/<%= request.id %>/return">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="btn btn-outline-primary btn-sm" type="submit"><i class="fa-solid fa-rotate-left me-1"></i>Mark returned</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>

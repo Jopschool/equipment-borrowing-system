@@ -47,6 +47,25 @@ db.exec(`
   );
 
   CREATE INDEX IF NOT EXISTS idx_equipment_status ON equipment (status);
+
+  CREATE TABLE IF NOT EXISTS requests (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+    equipment_id INTEGER NOT NULL REFERENCES equipment(id) ON DELETE RESTRICT,
+    status       TEXT NOT NULL DEFAULT 'pending'
+                 CHECK (status IN ('pending', 'approved', 'rejected', 'returned')),
+    requested_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    due_date     TEXT NOT NULL,
+    returned_at  TEXT
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_requests_status_requested_at
+    ON requests (status, requested_at);
+  CREATE INDEX IF NOT EXISTS idx_requests_user_requested_at
+    ON requests (user_id, requested_at);
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_requests_active_user_equipment
+    ON requests (user_id, equipment_id)
+    WHERE status IN ('pending', 'approved');
 `);
 
 // --- Prepared statements: always parameterised, never string-concatenated (SQL injection). ---

@@ -1,0 +1,52 @@
+<div class="page-header">
+  <div>
+    <p class="eyebrow mb-2">RECORDS</p>
+    <h1 class="page-title mb-2">Borrowing history</h1>
+    <p class="page-description mb-0">Completed and rejected borrowing requests.</p>
+  </div>
+  <a class="btn btn-outline-secondary" href="/admin/requests"><i class="fa-solid fa-arrow-left me-2"></i>Requests</a>
+</div>
+
+<section class="card equipment-card" aria-labelledby="history-title">
+  <div class="card-header equipment-card-header">
+    <div>
+      <h2 class="section-title mb-1" id="history-title">Past transactions</h2>
+      <p class="section-description mb-0">A record of returned equipment and requests that were not approved.</p>
+    </div>
+    <span class="item-count"><%= history.length %> <%= history.length === 1 ? 'record' : 'records' %></span>
+  </div>
+  <% if (!history.length) { %>
+    <div class="empty-state"><p class="mb-0">There are no completed borrowing transactions yet.</p></div>
+  <% } else { %>
+    <div class="table-responsive">
+      <table class="table equipment-table align-middle mb-0">
+        <thead>
+          <tr>
+            <th class="ps-4">Borrower</th>
+            <th>Equipment</th>
+            <th>Requested date</th>
+            <th>Due date</th>
+            <th>Returned date</th>
+            <th class="pe-4">Final status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% history.forEach(entry => { %>
+            <tr>
+              <td class="ps-4"><%= entry.username %></td>
+              <td><span class="equipment-name"><%= entry.equipment_name %></span></td>
+              <td><%= entry.requested_at %></td>
+              <td><%= entry.due_date %></td>
+              <td><%= entry.returned_at || '—' %></td>
+              <td class="pe-4">
+                <span class="status-badge status-<%= entry.status %>">
+                  <span class="status-dot"></span><%= entry.status %>
+                </span>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>

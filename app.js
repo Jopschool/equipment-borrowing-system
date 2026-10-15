@@ -9,6 +9,7 @@ const { requireLogin, requireInventoryAccess } = require('./middleware/auth');
 const csrf = require('./middleware/csrf');
 const authRoutes = require('./routes/auth');
 const inventoryRoutes = require('./routes/inventory');
+const requestRoutes = require('./routes/requests');
 
 const isProd = process.env.NODE_ENV === 'production';
 if (!process.env.SESSION_SECRET || process.env.SESSION_SECRET.length < 32) {
@@ -36,7 +37,7 @@ app.use((req, res, next) => {
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'DENY',
         'Referrer-Policy': 'same-origin',
-        'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'",
+        'Content-Security-Policy': "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
     });
     next();
 });
@@ -62,10 +63,50 @@ app.get('/', (req, res) => res.redirect(req.session.userId ? '/dashboard' : '/lo
 app.use(authRoutes);
 
 app.get('/dashboard', requireLogin, (req, res) => {
-    const items = db.prepare('SELECT name, description, status FROM equipment ORDER BY name').all();
-    res.render('dashboard', { items });
+    const items = db.prepare(`
+        SELECT e.id, e.name, e.description, e.status,
+               EXISTS (
+                   SELECT 1 FROM requests r
+                   WHERE r.equipment_id = e.id AND r.user_id = ?
+                     AND r.status IN ('pending', 'approved')
+               ) AS has_active_request,
+               EXISTS (
+                   SELECT 1 FROM requests r
+                   WHERE r.equipment_id = e.id AND r.status = 'approved'
+                     AND e.status = 'borrowed' AND r.due_date < date('now')
+               ) AS is_overdue
+        FROM equipment e
+        ORDER BY e.name
+    `).all(req.user.id);
+    const overdueCount = db.prepare(`
+        SELECT COUNT(*) AS count
+        FROM requests r
+        JOIN equipment e ON e.id = r.equipment_id
+        WHERE r.status = 'approved' AND e.status = 'borrowed'
+          AND r.due_date < date('now')
+    `).get().count;
+    const myRequests = req.user.role === 'borrower'
+        ? db.prepare(`
+            SELECT r.id, r.status, r.requested_at, r.due_date, r.returned_at, e.name AS equipment_name
+            FROM requests r
+            JOIN equipment e ON e.id = r.equipment_id
+            WHERE r.user_id = ?
+            ORDER BY r.requested_at DESC
+          `).all(req.user.id)
+        : [];
+    res.render('layout', {
+        title: 'Dashboard',
+        contentView: 'dashboard',
+        items,
+        overdueCount,
+        myRequests,
+        error: req.query.error || null,
+        success: req.query.success || null,
+        today: db.prepare("SELECT date('now') AS today").get().today,
+    });
 });
 
+app.use(requestRoutes);
 app.use('/inventory', requireInventoryAccess, inventoryRoutes);
 
 app.use((req, res) => res.status(404).send('404 Not Found'));

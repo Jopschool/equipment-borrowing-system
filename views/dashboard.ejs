@@ -1,20 +1,188 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Dashboard · Equipment Borrowing</title>
-<style>body{font-family:system-ui,sans-serif;max-width:760px;margin:2rem auto;padding:0 1rem}
-table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:.45rem;text-align:left}
-nav{display:flex;gap:1rem;align-items:center;margin-bottom:1rem}nav form{margin-left:auto}</style><link rel="stylesheet" href="/css/style.css"></head>
-<body>
-<nav>
-  <strong>Equipment Borrowing</strong>
-  <% if (user.role === 'admin' || user.role === 'custodian') { %><a href="/inventory">Manage inventory</a><% } %>
-  <form method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
-    <%= user.username %> (<%= user.role %>) <button>Log out</button></form>
-</nav>
-<h1>Dashboard</h1>
-<h2>Equipment</h2>
-<% if (!items.length) { %><p>No equipment has been added yet.</p><% } else { %>
-<table><thead><tr><th>Name</th><th>Description</th><th>Status</th></tr></thead><tbody>
-<% items.forEach(i => { %><tr><td><%= i.name %></td><td><%= i.description %></td><td><%= i.status %></td></tr><% }) %>
-</tbody></table><% } %>
-</body></html>
+<div class="page-header">
+  <div>
+    <p class="eyebrow mb-2">OVERVIEW</p>
+    <h1 class="page-title mb-2">Equipment dashboard</h1>
+    <p class="page-description mb-0">Welcome back, <%= user.username %>. Here’s the latest snapshot of your equipment.</p>
+  </div>
+  <% if (user.role === 'admin' || user.role === 'custodian') { %>
+    <a href="/inventory" class="btn btn-primary"><i class="fa-solid fa-boxes-stacked me-2"></i>Manage inventory</a>
+  <% } %>
+</div>
+
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xxl-5 g-3 mb-4">
+  <div class="col">
+    <div class="card stat-card stat-card-total h-100">
+      <div class="card-body d-flex align-items-center">
+        <div class="stat-icon stat-icon-total me-3">
+          <i class="fa-solid fa-boxes-stacked"></i>
+        </div>
+        <div>
+          <div class="stat-label">Total items</div>
+          <div class="stat-value"><%= items.length %></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="card stat-card stat-card-available h-100">
+      <div class="card-body d-flex align-items-center">
+        <div class="stat-icon stat-icon-available me-3">
+          <i class="fa-solid fa-circle-check"></i>
+        </div>
+        <div>
+          <div class="stat-label">Available</div>
+          <div class="stat-value"><%= items.filter(i => i.status === 'available').length %></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="card stat-card stat-card-borrowed h-100">
+      <div class="card-body d-flex align-items-center">
+        <div class="stat-icon stat-icon-borrowed me-3">
+          <i class="fa-solid fa-hand-holding"></i>
+        </div>
+        <div>
+          <div class="stat-label">Borrowed</div>
+          <div class="stat-value"><%= items.filter(i => i.status === 'borrowed').length %></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="card stat-card stat-card-maintenance h-100">
+      <div class="card-body d-flex align-items-center">
+        <div class="stat-icon stat-icon-maintenance me-3">
+          <i class="fa-solid fa-wrench"></i>
+        </div>
+        <div>
+          <div class="stat-label">Maintenance</div>
+          <div class="stat-value"><%= items.filter(i => i.status === 'maintenance').length %></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="card stat-card stat-card-overdue h-100">
+      <div class="card-body d-flex align-items-center">
+        <div class="stat-icon stat-icon-overdue me-3">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+          <div class="stat-label">Overdue</div>
+          <div class="stat-value"><%= overdueCount %></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card equipment-card">
+  <div class="card-header equipment-card-header">
+    <div>
+      <h2 class="section-title mb-1">Equipment overview</h2>
+      <p class="section-description mb-0">A quick look at the equipment currently in your system.</p>
+    </div>
+    <span class="item-count"><%= items.length %> <%= items.length === 1 ? 'item' : 'items' %></span>
+  </div>
+  <div class="card-body p-0">
+    <% if (!items.length) { %>
+      <div class="empty-state">
+        <span class="empty-state-icon"><i class="fa-solid fa-box-open"></i></span>
+        <h3>No equipment yet</h3>
+        <p>Newly added equipment will appear here.</p>
+        <% if (user.role === 'admin' || user.role === 'custodian') { %>
+          <a class="btn btn-primary btn-sm" href="/inventory">Add equipment</a>
+        <% } %>
+      </div>
+    <% } else { %>
+      <div class="table-responsive">
+        <table class="table equipment-table align-middle mb-0">
+          <thead>
+            <tr>
+              <th class="ps-4">Equipment</th>
+              <th>Description</th>
+              <th class="pe-4">Status</th>
+              <% if (user.role === 'borrower') { %><th class="pe-4">Action</th><% } %>
+            </tr>
+          </thead>
+          <tbody>
+            <% items.forEach(i => { %>
+              <tr>
+                <td class="ps-4">
+                  <span class="equipment-name-icon"><i class="fa-solid fa-box"></i></span>
+                  <span class="equipment-name"><%= i.name %></span>
+                </td>
+                <td class="equipment-description"><%= i.description || 'No description provided' %></td>
+                <td class="pe-4">
+                  <span class="status-badge status-<%= String(i.status).toLowerCase() %>">
+                    <span class="status-dot"></span><%= i.status %>
+                  </span>
+                  <% if (i.is_overdue) { %>
+                    <span class="status-badge status-overdue ms-1"><span class="status-dot"></span>Overdue</span>
+                  <% } %>
+                </td>
+                <% if (user.role === 'borrower') { %>
+                  <td class="pe-4">
+                    <% if (i.status === 'available' && !i.has_active_request) { %>
+                      <form class="borrow-request-form" method="post" action="/request-borrow/<%= i.id %>">
+                        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                        <label class="visually-hidden" for="due-date-<%= i.id %>">Due date for <%= i.name %></label>
+                        <input class="form-control form-control-sm" id="due-date-<%= i.id %>" name="due_date" type="date" min="<%= today %>" required>
+                        <button class="btn btn-primary btn-sm" type="submit"><i class="fa-solid fa-hand-holding me-1"></i>Request to borrow</button>
+                      </form>
+                    <% } else if (i.status === 'available' && i.has_active_request) { %>
+                      <span class="status-badge status-pending"><span class="status-dot"></span>Request pending</span>
+                    <% } else { %>
+                      <span class="text-muted small">Not available</span>
+                    <% } %>
+                  </td>
+                <% } %>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<% if (user.role === 'borrower') { %>
+  <div class="card equipment-card mt-4">
+    <div class="card-header equipment-card-header">
+      <div>
+        <h2 class="section-title mb-1">My borrowing requests</h2>
+        <p class="section-description mb-0">Track the status and due date of your requests.</p>
+      </div>
+      <span class="item-count"><%= myRequests.length %> <%= myRequests.length === 1 ? 'request' : 'requests' %></span>
+    </div>
+    <% if (!myRequests.length) { %>
+      <div class="empty-state"><p class="mb-0">You haven’t submitted any borrowing requests yet.</p></div>
+    <% } else { %>
+      <div class="table-responsive">
+        <table class="table equipment-table align-middle mb-0">
+          <thead><tr><th class="ps-4">Equipment</th><th>Requested</th><th>Due date</th><th class="pe-4">Status</th></tr></thead>
+          <tbody>
+            <% myRequests.forEach(request => { %>
+              <tr>
+                <td class="ps-4"><span class="equipment-name"><%= request.equipment_name %></span></td>
+                <td><%= request.requested_at %></td>
+                <td>
+                  <%= request.due_date %>
+                  <% if (request.status === 'approved' && request.due_date < today) { %>
+                    <span class="status-badge status-overdue ms-1"><span class="status-dot"></span>Overdue</span>
+                  <% } %>
+                </td>
+                <td class="pe-4"><span class="status-badge status-<%= request.status %>"><span class="status-dot"></span><%= request.status %></span></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+<% } %>

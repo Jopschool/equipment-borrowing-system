@@ -1,34 +1,72 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Inventory · Equipment Borrowing</title>
-<style>body{font-family:system-ui,sans-serif;max-width:900px;margin:2rem auto;padding:0 1rem}
-table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #ddd;padding:.4rem;text-align:left}
-input,select{padding:.35rem}td form{display:inline}.add{display:flex;gap:.5rem;flex-wrap:wrap;margin:1rem 0}</style><link rel="stylesheet" href="/css/style.css"></head>
-<body>
-<p><a href="/dashboard">&larr; Dashboard</a> · signed in as <%= user.username %> (<%= user.role %>)</p>
-<h1>Inventory management</h1>
-<form class="add" method="post" action="/inventory">
-  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-  <input name="name" placeholder="Name" required maxlength="100">
-  <input name="description" placeholder="Description" maxlength="500">
-  <select name="status"><% statuses.forEach(s => { %><option><%= s %></option><% }) %></select>
-  <button>Add</button>
-</form>
-<table><thead><tr><th>Name</th><th>Description</th><th>Status</th><th></th></tr></thead><tbody>
-<% items.forEach(i => { %>
-<tr>
-  <td><input form="u<%= i.id %>" name="name" value="<%= i.name %>" required maxlength="100"></td>
-  <td><input form="u<%= i.id %>" name="description" value="<%= i.description %>" maxlength="500"></td>
-  <td><select form="u<%= i.id %>" name="status"><% statuses.forEach(s => { %><option <%= s === i.status ? 'selected' : '' %>><%= s %></option><% }) %></select></td>
-  <td>
-    <form id="u<%= i.id %>" method="post" action="/inventory/<%= i.id %>/update">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button>Save</button>
-    </form>
-    <% if (canDelete) { %><form method="post" action="/inventory/<%= i.id %>/delete" onsubmit="return confirm('Delete this item?')">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button>Delete</button>
-    </form><% } %>
-  </td>
-</tr>
-<% }) %>
-</tbody></table>
-</body></html>
+<%
+  const norm = s => String(s || '').toLowerCase().trim();
+  const statusClass = s => 'status-' + norm(s).replace(/[^a-z0-9]+/g, '-');
+%>
+
+  <div class="page-header">
+    <div>
+      <h1>Inventory management</h1>
+      <p class="text-muted-2"><%= items.length %> item<%= items.length === 1 ? '' : 's' %> in the system. Edit a row and press Save to update it.</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="/dashboard"><i class="fa-solid fa-arrow-left me-2"></i>Dashboard</a>
+  </div>
+
+  <!-- Add equipment -->
+  <div class="card mb-4">
+    <div class="card-body p-4">
+      <h2 class="h5 mb-3"><i class="fa-solid fa-circle-plus text-primary me-2"></i>Add equipment</h2>
+      <form class="add row g-3 align-items-end" method="post" action="/inventory">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="add-name">Name</label>
+          <input class="form-control" id="add-name" name="name" placeholder="Name" required maxlength="100">
+        </div>
+        <div class="col-12 col-md-4">
+          <label class="form-label" for="add-description">Description</label>
+          <input class="form-control" id="add-description" name="description" placeholder="Description" maxlength="500">
+        </div>
+        <div class="col-6 col-md-2">
+          <label class="form-label" for="add-status">Status</label>
+          <select class="form-select" id="add-status" name="status"><% statuses.forEach(s => { %><option><%= s %></option><% }) %></select>
+        </div>
+        <div class="col-6 col-md-2">
+          <button class="btn btn-primary w-100"><i class="fa-solid fa-plus me-1"></i>Add</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Equipment table -->
+  <div class="card table-card">
+    <div class="table-responsive">
+      <table class="table inventory-table align-middle">
+        <thead><tr><th>Name</th><th>Description</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+        <tbody>
+        <% items.forEach(i => { %>
+        <tr>
+          <td data-label="Name"><input class="form-control form-control-sm" form="u<%= i.id %>" name="name" value="<%= i.name %>" required maxlength="100"></td>
+          <td data-label="Description"><input class="form-control form-control-sm" form="u<%= i.id %>" name="description" value="<%= i.description %>" maxlength="500"></td>
+          <td data-label="Status">
+            <span class="status-badge <%= statusClass(i.status) %> mb-2"><%= i.status %></span>
+            <% if (i.status === 'borrowed') { %>
+              <select class="form-select form-select-sm" aria-label="Status managed by active borrowing request" disabled><option selected>borrowed (active loan)</option></select>
+            <% } else { %>
+              <select class="form-select form-select-sm" form="u<%= i.id %>" name="status"><% statuses.forEach(s => { %><option <%= s === i.status ? 'selected' : '' %>><%= s %></option><% }) %></select>
+            <% } %>
+          </td>
+          <td class="actions-cell text-md-end">
+            <div class="action-group">
+              <form id="u<%= i.id %>" method="post" action="/inventory/<%= i.id %>/update">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-primary btn-sm"><i class="fa-solid fa-floppy-disk me-1"></i>Save</button>
+              </form>
+              <% if (canDelete) { %><form method="post" action="/inventory/<%= i.id %>/delete" onsubmit="return confirm('Delete this item?')">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="btn btn-outline-danger btn-sm"><i class="fa-solid fa-trash-can me-1"></i>Delete</button>
+              </form><% } %>
+            </div>
+          </td>
+        </tr>
+        <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
